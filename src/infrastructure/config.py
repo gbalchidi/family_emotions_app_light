@@ -11,9 +11,8 @@ class Settings(BaseSettings):
     log_level: str = Field(default="INFO", env="LOG_LEVEL")
     
     # Proxy settings (optional)
-    http_proxy: Optional[str] = Field(default=None, env="HTTP_PROXY")
-    https_proxy: Optional[str] = Field(default=None, env="HTTPS_PROXY")
-    no_proxy: Optional[str] = Field(default=None, env="NO_PROXY")
+    use_proxy: bool = Field(default=False, env="USE_PROXY")
+    proxy_url: Optional[str] = Field(default=None, env="PROXY_URL")
     
     max_phrase_length: int = Field(default=500)
     min_phrase_length: int = Field(default=2)

@@ -44,7 +44,11 @@ async def main():
     dp = Dispatcher(storage=storage)
     
     logger.info("Initializing Anthropic analyzer...")
-    anthropic_analyzer = AnthropicAnalyzer(api_key=settings.anthropic_api_key)
+    anthropic_analyzer = AnthropicAnalyzer(
+        api_key=settings.anthropic_api_key,
+        use_proxy=settings.use_proxy,
+        proxy_url=settings.proxy_url
+    )
     analysis_service = PhraseAnalysisService(anthropic_analyzer=anthropic_analyzer)
     interaction_service = InteractionService()
     

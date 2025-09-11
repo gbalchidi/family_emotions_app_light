@@ -18,6 +18,11 @@ TELEGRAM_BOT_TOKEN=your_telegram_bot_token
 ANTHROPIC_API_KEY=your_anthropic_api_key
 ENVIRONMENT=production
 LOG_LEVEL=INFO
+
+# If your server is in a region where Anthropic API is blocked:
+USE_PROXY=true
+PROXY_URL=socks5://host.docker.internal:1080
+# Adjust port 1080 to your shadowsocks/proxy port
 ```
 
 ### 2. Coolify Configuration
