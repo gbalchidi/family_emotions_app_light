@@ -23,14 +23,19 @@ class AnthropicAnalyzer:
                     try:
                         from httpx_socks import SyncProxyTransport
                         transport = SyncProxyTransport.from_url(proxy_url)
-                        http_client = httpx.Client(transport=transport, timeout=60.0)
+                        http_client = httpx.Client(
+                            transport=transport, 
+                            timeout=httpx.Timeout(60.0),
+                            verify=False  # Disable SSL verification for proxy
+                        )
                         logger.info("Using SOCKS5 proxy via httpx-socks")
                     except ImportError:
                         logger.warning("httpx-socks not available, falling back to regular httpx")
                         # Fallback to regular httpx
                         http_client = httpx.Client(
                             proxies=proxy_url,
-                            timeout=httpx.Timeout(60.0)
+                            timeout=httpx.Timeout(60.0),
+                            verify=False
                         )
                 else:
                     # HTTP proxy

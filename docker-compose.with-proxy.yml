@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  # SOCKS5 proxy client
+  shadowsocks:
+    image: shadowsocks/shadowsocks-libev
+    container_name: shadowsocks-client
+    restart: unless-stopped
+    command: ss-local -s 35.204.105.5 -p 23415 -b 0.0.0.0 -l 1080 -k "p1zsciXdqxcIJWqKvIb4TC" -m chacha20-ietf-poly1305
+    ports:
+      - "1080:1080"
+    networks:
+      - bot-network
+
+  bot:
+    build: .
+    container_name: emotions-translator-bot
+    restart: unless-stopped
+    depends_on:
+      - shadowsocks
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - ENVIRONMENT=production
+      - LOG_LEVEL=INFO
+      - USE_PROXY=true
+      - PROXY_URL=socks5://shadowsocks:1080
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - bot-network
+
+networks:
+  bot-network:
+    driver: bridge

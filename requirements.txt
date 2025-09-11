@@ -3,6 +3,8 @@ anthropic==0.34.0
 httpx==0.25.2
 python-socks==2.4.4
 httpx-socks==0.9.1
+aiohttp==3.9.1
+aiohttp-socks==0.8.4
 pydantic==2.5.0
 pydantic-settings==2.1.0
 python-dotenv==1.0.0
