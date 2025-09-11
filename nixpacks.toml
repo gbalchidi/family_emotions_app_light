@@ -1,0 +1,8 @@
+[phases.setup]
+nixPkgs = ["python311", "poetry"]
+
+[phases.install]
+cmds = ["poetry install --no-dev"]
+
+[start]
+cmd = "python -m src.main"
