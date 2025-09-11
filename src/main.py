@@ -31,6 +31,10 @@ async def main():
     logger = logging.getLogger(__name__)
     logger.info("Starting Emotions Translator Bot...")
     
+    # Log library versions for debugging
+    import anthropic
+    logger.info(f"Anthropic library version: {anthropic.__version__}")
+    
     bot = Bot(
         token=settings.telegram_bot_token,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML)
@@ -39,6 +43,7 @@ async def main():
     storage = MemoryStorage()
     dp = Dispatcher(storage=storage)
     
+    logger.info("Initializing Anthropic analyzer...")
     anthropic_analyzer = AnthropicAnalyzer(api_key=settings.anthropic_api_key)
     analysis_service = PhraseAnalysisService(anthropic_analyzer=anthropic_analyzer)
     interaction_service = InteractionService()

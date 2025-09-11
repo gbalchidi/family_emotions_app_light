@@ -12,8 +12,13 @@ logger = logging.getLogger(__name__)
 class AnthropicAnalyzer:
     
     def __init__(self, api_key: str):
-        self.client = anthropic.Anthropic(api_key=api_key)
-        self.model = "claude-3-sonnet-20240229"
+        try:
+            self.client = anthropic.Anthropic(api_key=api_key)
+            self.model = "claude-3-haiku-20240307"
+            logger.info(f"Anthropic client initialized with model: {self.model}")
+        except Exception as e:
+            logger.error(f"Failed to initialize Anthropic client: {e}")
+            raise
     
     async def analyze(
         self,
