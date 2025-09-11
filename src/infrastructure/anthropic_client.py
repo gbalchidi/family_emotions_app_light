@@ -16,22 +16,38 @@ class AnthropicAnalyzer:
     def __init__(self, api_key: str, use_proxy: bool = False, proxy_url: Optional[str] = None):
         try:
             if use_proxy and proxy_url:
-                # Configure httpx client with proxy
                 logger.info(f"Configuring Anthropic client with proxy: {proxy_url}")
-                http_client = httpx.Client(
-                    proxies={
-                        "http://": proxy_url,
-                        "https://": proxy_url
-                    },
-                    timeout=httpx.Timeout(30.0),
-                    follow_redirects=True
-                )
+                
+                # For SOCKS5 proxy, use httpx-socks
+                if 'socks5://' in proxy_url:
+                    try:
+                        from httpx_socks import SyncProxyTransport
+                        transport = SyncProxyTransport.from_url(proxy_url)
+                        http_client = httpx.Client(transport=transport, timeout=60.0)
+                        logger.info("Using SOCKS5 proxy via httpx-socks")
+                    except ImportError:
+                        logger.warning("httpx-socks not available, falling back to regular httpx")
+                        # Fallback to regular httpx
+                        http_client = httpx.Client(
+                            proxies=proxy_url,
+                            timeout=httpx.Timeout(60.0)
+                        )
+                else:
+                    # HTTP proxy
+                    logger.info("Using HTTP proxy")
+                    http_client = httpx.Client(
+                        proxies={
+                            "http://": proxy_url,
+                            "https://": proxy_url
+                        },
+                        timeout=httpx.Timeout(60.0)
+                    )
+                    
                 self.client = anthropic.Anthropic(
                     api_key=api_key,
                     http_client=http_client
                 )
             else:
-                # Create client without proxy
                 logger.info("Configuring Anthropic client without proxy")
                 self.client = anthropic.Anthropic(api_key=api_key)
             
