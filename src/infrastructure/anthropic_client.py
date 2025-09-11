@@ -2,6 +2,8 @@ import anthropic
 from typing import List, Optional
 import logging
 from datetime import datetime
+import os
+import httpx
 
 from ..domain.entities import PhraseAnalysis, EmotionalState, ExamplePhrase
 
@@ -11,9 +13,24 @@ logger = logging.getLogger(__name__)
 
 class AnthropicAnalyzer:
     
-    def __init__(self, api_key: str):
+    def __init__(self, api_key: str, proxy_url: Optional[str] = None):
         try:
-            self.client = anthropic.Anthropic(api_key=api_key)
+            # Clear proxy environment variables if they exist
+            # This prevents the client from auto-detecting system proxy
+            for var in ['HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy']:
+                if var in os.environ:
+                    logger.info(f"Clearing {var} from environment")
+                    del os.environ[var]
+            
+            # Create client without proxy support
+            self.client = anthropic.Anthropic(
+                api_key=api_key,
+                # Explicitly set httpx client without proxy
+                http_client=httpx.Client(
+                    timeout=httpx.Timeout(30.0),
+                    follow_redirects=True
+                )
+            )
             self.model = "claude-3-haiku-20240307"
             logger.info(f"Anthropic client initialized with model: {self.model}")
         except Exception as e:

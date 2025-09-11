@@ -9,6 +9,12 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - ENVIRONMENT=production
       - LOG_LEVEL=INFO
+      # Explicitly disable proxy for the container
+      - HTTP_PROXY=
+      - HTTPS_PROXY=
+      - http_proxy=
+      - https_proxy=
+      - NO_PROXY=*
     volumes:
       - ./logs:/app/logs
 
