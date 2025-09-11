@@ -48,6 +48,8 @@ poetry run python -m src.main
 docker-compose up -d
 ```
 
+**Note:** The Docker image includes a built-in Shadowsocks proxy client for regions where Anthropic API is restricted. The proxy automatically connects to the configured server and routes all API requests through it.
+
 ## Architecture
 
 The bot follows Domain-Driven Design (DDD) principles:
