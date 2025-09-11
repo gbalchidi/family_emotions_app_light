@@ -2,6 +2,7 @@ import asyncio
 import logging
 import sys
 from aiogram import Bot, Dispatcher
+from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 
@@ -30,7 +31,10 @@ async def main():
     logger = logging.getLogger(__name__)
     logger.info("Starting Emotions Translator Bot...")
     
-    bot = Bot(token=settings.telegram_bot_token, parse_mode=ParseMode.HTML)
+    bot = Bot(
+        token=settings.telegram_bot_token,
+        default=DefaultBotProperties(parse_mode=ParseMode.HTML)
+    )
     
     storage = MemoryStorage()
     dp = Dispatcher(storage=storage)

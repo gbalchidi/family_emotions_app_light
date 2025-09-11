@@ -16,9 +16,6 @@ Add these environment variables in Coolify dashboard:
 ```
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token
 ANTHROPIC_API_KEY=your_anthropic_api_key
-REDIS_HOST=redis
-REDIS_PORT=6379
-REDIS_DB=0
 ENVIRONMENT=production
 LOG_LEVEL=INFO
 ```
@@ -50,10 +47,6 @@ Check bot logs:
 docker logs emotions-translator-bot
 ```
 
-Check Redis:
-```bash
-docker exec -it emotions-translator-redis redis-cli ping
-```
 
 ## Troubleshooting
 
@@ -67,7 +60,3 @@ docker exec -it emotions-translator-redis redis-cli ping
 - Check API rate limits
 - Monitor logs for API errors
 
-### Redis connection issues
-- Ensure Redis container is running
-- Check network connectivity
-- Verify REDIS_HOST environment variable
