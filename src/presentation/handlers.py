@@ -142,6 +142,56 @@ class BotHandlers:
             user_id=callback.from_user.id,
             feedback="negative"
         )
+    
+    async def more_options_callback(self, callback: CallbackQuery):
+        await callback.answer()
+        # Get last interaction and generate more options
+        interactions = self.interaction_service.get_user_interactions(callback.from_user.id)
+        if interactions and interactions[-1].analysis:
+            analysis = interactions[-1].analysis
+            additional_responses = [
+                "Я вижу, что тебе тяжело. Давай поговорим, когда будешь готов.",
+                "Понимаю твои чувства. Что могло бы помочь тебе сейчас?",
+                "Хочешь рассказать, что произошло? Я просто послушаю."
+            ]
+            message = f"""💡 Дополнительные варианты ответов:
+
+{chr(10).join(['• ' + r for r in additional_responses])}
+
+💭 Помните: важнее всего показать, что вы рядом и готовы поддержать."""
+            
+            await callback.message.answer(
+                message,
+                reply_markup=self.keyboards.after_analysis_menu()
+            )
+        else:
+            await callback.answer("Сначала проанализируйте фразу", show_alert=True)
+    
+    async def similar_examples_callback(self, callback: CallbackQuery):
+        await callback.answer()
+        # Get last interaction and find similar examples
+        interactions = self.interaction_service.get_user_interactions(callback.from_user.id)
+        if interactions:
+            last_phrase = interactions[-1].phrase
+            similar = self.examples.find_similar(last_phrase)
+            
+            if similar:
+                message = "📚 Похожие примеры:\n\n"
+                for ex in similar[:3]:
+                    message += f"➤ \"{ex.phrase}\"\n{ex.typical_meaning}\n\n"
+            else:
+                # Show general examples if no similar found
+                examples = self.examples.get_common_phrases()[:3]
+                message = "📚 Другие частые фразы:\n\n"
+                for ex in examples:
+                    message += f"➤ \"{ex.phrase}\"\n{ex.typical_meaning}\n\n"
+            
+            await callback.message.answer(
+                message,
+                reply_markup=self.keyboards.back_to_menu()
+            )
+        else:
+            await callback.answer("Сначала проанализируйте фразу", show_alert=True)
 
 
 def register_handlers(
@@ -165,6 +215,14 @@ def register_handlers(
     router.callback_query.register(handlers.how_it_works_callback, F.data == "how_it_works")
     router.callback_query.register(handlers.tips_callback, F.data == "tips")
     router.callback_query.register(handlers.home_callback, F.data == "home")
+    router.callback_query.register(
+        handlers.more_options_callback,
+        F.data == "more_options"
+    )
+    router.callback_query.register(
+        handlers.similar_examples_callback,
+        F.data == "similar"
+    )
     router.callback_query.register(
         handlers.feedback_positive_callback, 
         F.data == "feedback_positive"
