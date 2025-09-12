@@ -35,9 +35,16 @@ async def main():
     import anthropic
     logger.info(f"Anthropic library version: {anthropic.__version__}")
     
+    # Create bot with custom session for better network handling
+    from aiogram.client.session.aiohttp import AiohttpSession
+    session = AiohttpSession(
+        timeout=60.0  # Increase timeout to 60 seconds
+    )
+    
     bot = Bot(
         token=settings.telegram_bot_token,
-        default=DefaultBotProperties(parse_mode=ParseMode.HTML)
+        default=DefaultBotProperties(parse_mode=ParseMode.HTML),
+        session=session
     )
     
     storage = MemoryStorage()
@@ -89,6 +96,15 @@ async def main():
             return await handler(event, data)
     
     dp.message.middleware(RateLimitMiddleware(rate_limiter))
+    
+    # Test bot connection before starting polling
+    try:
+        me = await bot.get_me()
+        logger.info(f"Bot connected successfully: @{me.username} (ID: {me.id})")
+    except Exception as e:
+        logger.error(f"Failed to connect to Telegram: {e}")
+        logger.error("Please check your network connection and bot token")
+        raise
     
     await dp.start_polling(bot)
 
