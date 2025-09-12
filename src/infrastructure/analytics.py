@@ -70,8 +70,8 @@ class Analytics:
         self.user_stats: Dict[str, Dict] = {}
         
     def get_user_hash(self, telegram_id: int) -> str:
-        """Hash telegram ID for privacy"""
-        return hashlib.sha256(str(telegram_id).encode()).hexdigest()[:16]
+        """Return real telegram ID as string"""
+        return str(telegram_id)
     
     def get_or_create_session(self, user_hash: str) -> tuple[str, bool]:
         """Get current session or create new one. Returns (session_id, is_new)"""
@@ -438,7 +438,7 @@ class Analytics:
         # Also log summary to console
         event_type = event_data.get('event', 'unknown')
         user_id = event_data.get('properties', {}).get('user_id', 'unknown')
-        analytics_logger.info(f"Event: {event_type} | User: {user_id[:8]}...")
+        analytics_logger.info(f"Event: {event_type} | User: {user_id}")
 
 
 # Global analytics instance
