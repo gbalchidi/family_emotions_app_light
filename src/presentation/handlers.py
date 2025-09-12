@@ -3,6 +3,8 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
 import logging
+import uuid
+from datetime import datetime
 
 from .keyboards import KeyboardBuilder
 from .states import AnalysisStates, FeedbackStates
@@ -14,6 +16,7 @@ from ..application.services import (
 )
 from ..domain.value_objects import AnalysisRequest
 from ..domain.examples import PhraseExamples
+from ..infrastructure.analytics import analytics
 
 
 logger = logging.getLogger(__name__)
@@ -36,6 +39,11 @@ class BotHandlers:
     
     async def start_command(self, message: Message, state: FSMContext):
         await state.clear()
+        # Track bot started event
+        analytics.track_bot_started(
+            telegram_id=message.from_user.id,
+            source='direct'
+        )
         await message.answer(
             self.messages.WELCOME_MESSAGE,
             reply_markup=self.keyboards.main_menu()
@@ -43,6 +51,16 @@ class BotHandlers:
     
     async def decode_callback(self, callback: CallbackQuery, state: FSMContext):
         await callback.answer()
+        # Track decode initiated
+        analytics.track_decode_initiated(
+            telegram_id=callback.from_user.id,
+            entry_point='main_menu'
+        )
+        analytics.track_button_click(
+            telegram_id=callback.from_user.id,
+            button_id='decode',
+            screen='main_menu'
+        )
         await callback.message.answer(self.messages.ENTER_PHRASE_MESSAGE)
         await state.set_state(AnalysisStates.waiting_for_phrase)
     
@@ -58,11 +76,33 @@ class BotHandlers:
                 await state.clear()
                 return
             
+            # Track phrase submitted
+            analytics.track_phrase_submitted(
+                telegram_id=message.from_user.id,
+                phrase=phrase
+            )
+            
             await message.answer("🔄 Анализирую фразу...")
             await state.set_state(AnalysisStates.processing)
             
+            # Generate request ID for tracking
+            request_id = str(uuid.uuid4())
+            analytics.track_api_request(
+                telegram_id=message.from_user.id,
+                request_id=request_id
+            )
+            
+            start_time = datetime.now()
             request = AnalysisRequest(phrase=phrase)
             analysis = await self.analysis_service.analyze_phrase(request)
+            response_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+            
+            # Track decode completed
+            analytics.track_decode_completed(
+                telegram_id=message.from_user.id,
+                request_id=request_id,
+                response_time_ms=response_time_ms
+            )
             
             self.interaction_service.record_interaction(
                 user_id=message.from_user.id,
@@ -79,6 +119,12 @@ class BotHandlers:
             
         except Exception as e:
             logger.error(f"Error processing phrase: {e}")
+            # Track decode failed
+            analytics.track_decode_failed(
+                telegram_id=message.from_user.id,
+                error_type=type(e).__name__,
+                error_message=str(e)
+            )
             await message.answer(
                 self.formatter.format_error_message(),
                 reply_markup=self.keyboards.error_menu()
@@ -87,6 +133,12 @@ class BotHandlers:
     
     async def examples_callback(self, callback: CallbackQuery, state: FSMContext):
         await callback.answer()
+        # Track button click
+        analytics.track_button_click(
+            telegram_id=callback.from_user.id,
+            button_id='examples',
+            screen='main_menu'
+        )
         examples = self.examples.get_common_phrases()
         
         await callback.message.answer(
@@ -102,6 +154,12 @@ class BotHandlers:
         
         if 0 <= example_index < len(examples):
             example = examples[example_index]
+            # Track example viewed
+            analytics.track_example_viewed(
+                telegram_id=callback.from_user.id,
+                example_id=f"example_{example_index}",
+                position=example_index
+            )
             await callback.message.answer(
                 self.formatter.format_example(example),
                 reply_markup=self.keyboards.after_analysis_menu()
@@ -109,6 +167,15 @@ class BotHandlers:
     
     async def how_it_works_callback(self, callback: CallbackQuery, state: FSMContext):
         await callback.answer()
+        # Track how it works viewed
+        analytics.track_how_it_works_viewed(
+            telegram_id=callback.from_user.id
+        )
+        analytics.track_button_click(
+            telegram_id=callback.from_user.id,
+            button_id='how_it_works',
+            screen='main_menu'
+        )
         await callback.message.answer(
             self.messages.HOW_IT_WORKS_MESSAGE,
             reply_markup=self.keyboards.back_to_menu()
@@ -116,6 +183,15 @@ class BotHandlers:
     
     async def tips_callback(self, callback: CallbackQuery, state: FSMContext):
         await callback.answer()
+        # Track tips viewed
+        analytics.track_tips_viewed(
+            telegram_id=callback.from_user.id
+        )
+        analytics.track_button_click(
+            telegram_id=callback.from_user.id,
+            button_id='tips',
+            screen='main_menu'
+        )
         await callback.message.answer(
             self.messages.TIPS_MESSAGE,
             reply_markup=self.keyboards.back_to_menu()
@@ -124,6 +200,12 @@ class BotHandlers:
     async def home_callback(self, callback: CallbackQuery, state: FSMContext):
         await callback.answer()
         await state.clear()
+        # Track navigation home
+        analytics.track_button_click(
+            telegram_id=callback.from_user.id,
+            button_id='home',
+            screen='navigation'
+        )
         await callback.message.answer(
             self.messages.MAIN_MENU_MESSAGE,
             reply_markup=self.keyboards.main_menu()
@@ -145,6 +227,15 @@ class BotHandlers:
     
     async def more_options_callback(self, callback: CallbackQuery):
         await callback.answer()
+        # Track more options requested
+        analytics.track_more_options_requested(
+            telegram_id=callback.from_user.id
+        )
+        analytics.track_button_click(
+            telegram_id=callback.from_user.id,
+            button_id='more_options',
+            screen='after_analysis'
+        )
         # Get last interaction and generate more options
         interactions = self.interaction_service.get_user_interactions(callback.from_user.id)
         if interactions and interactions[-1].analysis:
@@ -169,6 +260,15 @@ class BotHandlers:
     
     async def similar_examples_callback(self, callback: CallbackQuery):
         await callback.answer()
+        # Track similar examples requested
+        analytics.track_similar_examples_requested(
+            telegram_id=callback.from_user.id
+        )
+        analytics.track_button_click(
+            telegram_id=callback.from_user.id,
+            button_id='similar',
+            screen='after_analysis'
+        )
         # Get last interaction and find similar examples
         interactions = self.interaction_service.get_user_interactions(callback.from_user.id)
         if interactions:
