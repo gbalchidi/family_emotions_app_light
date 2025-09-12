@@ -22,9 +22,13 @@ class AnalyticsJSONFormatter(logging.Formatter):
         return super().format(record)
 
 # Add JSON handler for analytics
-analytics_handler = logging.FileHandler('analytics_events.log')
-analytics_handler.setFormatter(AnalyticsJSONFormatter())
-analytics_logger.addHandler(analytics_handler)
+try:
+    analytics_handler = logging.FileHandler('analytics_events.log')
+    analytics_handler.setFormatter(AnalyticsJSONFormatter())
+    analytics_logger.addHandler(analytics_handler)
+except Exception as e:
+    # If file handler fails, just use console
+    print(f"Warning: Could not create analytics file handler: {e}")
 
 # Also log to console with prefix
 console_handler = logging.StreamHandler()

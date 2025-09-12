@@ -66,7 +66,9 @@ async def main():
     
     from aiogram import Router
     router = Router()
+    logger.info("Registering handlers...")
     register_handlers(router, analysis_service, interaction_service)
+    logger.info("Handlers registered successfully")
     dp.include_router(router)
     
     from aiogram import BaseMiddleware
@@ -95,9 +97,12 @@ async def main():
             
             return await handler(event, data)
     
+    logger.info("Adding middleware...")
     dp.message.middleware(RateLimitMiddleware(rate_limiter))
+    logger.info("Middleware added")
     
     # Test bot connection before starting polling
+    logger.info("Testing bot connection...")
     try:
         me = await bot.get_me()
         logger.info(f"Bot connected successfully: @{me.username} (ID: {me.id})")
@@ -106,6 +111,7 @@ async def main():
         logger.error("Please check your network connection and bot token")
         raise
     
+    logger.info("Starting polling...")
     await dp.start_polling(bot)
 
 
