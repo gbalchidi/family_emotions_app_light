@@ -101,13 +101,32 @@ class ResponseFormatterService:
     
     @staticmethod
     def format_analysis(analysis: PhraseAnalysis) -> str:
-        emotions = ", ".join([e.value for e in analysis.emotional_state])
+        # Format emotions in Russian
+        emotion_names = {
+            "angry": "злость",
+            "frustrated": "раздражение", 
+            "sad": "грусть",
+            "anxious": "тревога",
+            "defensive": "защищённость",
+            "overwhelmed": "перегруженность",
+            "disconnected": "отчуждение",
+            "confused": "растерянность"
+        }
+        emotions = ", ".join([emotion_names.get(e.value, e.value) for e in analysis.emotional_state])
         
         responses = "\n".join([f"• {r}" for r in analysis.suggested_responses])
         avoid = "\n".join([f"• {a}" for a in analysis.what_to_avoid])
         
-        return f"""🔍 Анализ фразы: "{analysis.original_phrase}"
+        # Check if there's a safety section in the response
+        safety_text = ""
+        if hasattr(analysis, 'safety_notice') and analysis.safety_notice:
+            safety_text = f"""🚨 СРОЧНО О БЕЗОПАСНОСТИ:
+{analysis.safety_notice}
 
+"""
+        
+        return f"""🔍 Анализ фразы: "{analysis.original_phrase}"
+{safety_text}
 📊 ЧТО РЕБЁНОК ЧУВСТВУЕТ:
 {emotions.capitalize()}
 

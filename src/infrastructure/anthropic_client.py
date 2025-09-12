@@ -74,8 +74,8 @@ class AnthropicAnalyzer:
             
             response = self.client.messages.create(
                 model=self.model,
-                max_tokens=1000,
-                temperature=0.7,
+                max_tokens=900,
+                temperature=0.6,
                 messages=[
                     {
                         "role": "user",
@@ -105,33 +105,43 @@ class AnthropicAnalyzer:
         
         context_text = f"\nДополнительный контекст: {context}" if context else ""
         
-        return f"""Ты опытный детский психолог, специализирующийся на подростковой психологии.
+        return f"""ЗАДАЧА
+Ты опытный детский психолог, специализирующийся на подростках. По фразе ребёнка/подростка проанализируй состояние, намерение и потребности, а затем предложи родителю короткие, поддерживающие и безопасные ответы.
 
-Родитель прислал фразу, которую сказал его ребёнок/подросток (возраст {age_range} лет):
-"{phrase}"{context_text}{examples_text}
+ВХОДНЫЕ ДАННЫЕ
+• Возраст ребёнка: {age_range} лет
+• Фраза ребёнка: "{phrase}"{context_text}{examples_text}
 
-Проанализируй эту фразу и предоставь структурированный ответ в следующем формате:
+ПРАВИЛА И ТОН
+• Поддерживай родителя, не осуждай ребёнка. Избегай ярлыков и диагнозов.
+• Пиши по-русски простым, тёплым языком. Используй я-сообщения во фразах-ответах.
+• Адаптируй стиль под возраст:
+  - 10-12: короче, конкретнее, больше структурной поддержки
+  - 13-15: признание чувств, совместный поиск решений
+  - 16-17: уважение автономии, партнёрский тон
+• Будь краток: каждый раздел — 1-3 строки. Чёткие формулировки без общих слов.
+
+БЕЗОПАСНОСТЬ
+Если во фразе есть признаки риска (самоповреждение/суицид, насилие/угрозы, бегство из дома, употребление веществ):
+• Сначала выведи раздел "СРОЧНО О БЕЗОПАСНОСТИ" с 2-4 конкретными шагами
+• Затем основные разделы. Не ставь диагнозов.
+
+ФОРМАТ ВЫВОДА (строго соблюдать):
 
 ЭМОЦИОНАЛЬНОЕ СОСТОЯНИЕ:
-[Опиши основные эмоции, которые испытывает ребёнок. Используй слова: angry, frustrated, sad, anxious, defensive, overwhelmed, disconnected, confused]
+[3-5 эмоций по-русски: злость, раздражение, грусть, тревога, защищённость, перегруженность, отчуждение, растерянность]
 
 ИСТИННЫЙ СМЫСЛ:
-[Объясни в 2-3 предложениях, что на самом деле хочет сказать ребёнок]
+[2-3 предложения, что ребёнок пытается донести]
 
 ПОТРЕБНОСТЬ РЕБЁНКА:
-[В 1-2 предложениях опиши, что нужно ребёнку в данный момент]
+[1-2 предложения о ключевых потребностях]
 
 ВАРИАНТЫ ОТВЕТА:
-[Предложи 3 конкретных фразы, которые родитель может использовать в ответ. Каждая фраза должна быть естественной и поддерживающей]
+[3 короткие фразы в кавычках, естественные, с я-сообщениями, адаптированные под возраст]
 
 ЧЕГО ИЗБЕГАТЬ:
-[Укажи 3 конкретных действия или фразы, которых следует избегать]
-
-Ответ должен быть:
-- Емким и практичным
-- Поддерживающим для родителя
-- Учитывающим возрастные особенности
-- Без осуждения и критики"""
+[3 конкретных пункта - формулировки или действия]"""
     
     def _parse_response(self, original_phrase: str, response_text: str) -> PhraseAnalysis:
         sections = self._extract_sections(response_text)
@@ -166,7 +176,8 @@ class AnthropicAnalyzer:
                 "ИСТИННЫЙ СМЫСЛ:",
                 "ПОТРЕБНОСТЬ РЕБЁНКА:",
                 "ВАРИАНТЫ ОТВЕТА:",
-                "ЧЕГО ИЗБЕГАТЬ:"
+                "ЧЕГО ИЗБЕГАТЬ:",
+                "СРОЧНО О БЕЗОПАСНОСТИ:"
             ]):
                 if current_section:
                     sections[current_section] = "\n".join(current_content).strip()
@@ -183,6 +194,32 @@ class AnthropicAnalyzer:
     def _parse_emotional_states(self, text: str) -> List[EmotionalState]:
         states = []
         emotion_keywords = {
+            # Russian emotions mapping
+            "злость": EmotionalState.ANGRY,
+            "злится": EmotionalState.ANGRY,
+            "гнев": EmotionalState.ANGRY,
+            "раздражение": EmotionalState.FRUSTRATED,
+            "раздражён": EmotionalState.FRUSTRATED,
+            "фрустрация": EmotionalState.FRUSTRATED,
+            "грусть": EmotionalState.SAD,
+            "печаль": EmotionalState.SAD,
+            "грустит": EmotionalState.SAD,
+            "тревога": EmotionalState.ANXIOUS,
+            "тревожность": EmotionalState.ANXIOUS,
+            "беспокойство": EmotionalState.ANXIOUS,
+            "защищённость": EmotionalState.DEFENSIVE,
+            "защитная": EmotionalState.DEFENSIVE,
+            "защищается": EmotionalState.DEFENSIVE,
+            "перегруженность": EmotionalState.OVERWHELMED,
+            "перегружен": EmotionalState.OVERWHELMED,
+            "истощение": EmotionalState.OVERWHELMED,
+            "отчуждение": EmotionalState.DISCONNECTED,
+            "отчуждён": EmotionalState.DISCONNECTED,
+            "одиночество": EmotionalState.DISCONNECTED,
+            "растерянность": EmotionalState.CONFUSED,
+            "растерян": EmotionalState.CONFUSED,
+            "замешательство": EmotionalState.CONFUSED,
+            # Keep English as fallback
             "angry": EmotionalState.ANGRY,
             "frustrated": EmotionalState.FRUSTRATED,
             "sad": EmotionalState.SAD,
@@ -195,7 +232,7 @@ class AnthropicAnalyzer:
         
         text_lower = text.lower()
         for keyword, state in emotion_keywords.items():
-            if keyword in text_lower:
+            if keyword in text_lower and state not in states:
                 states.append(state)
         
         if not states:
