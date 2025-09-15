@@ -9,6 +9,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from .infrastructure.config import get_settings
 from .infrastructure.anthropic_client import AnthropicAnalyzer
 from .infrastructure.rate_limiter import RateLimiter
+from .infrastructure.database import analytics_db
 from .application.services import PhraseAnalysisService, InteractionService
 from .presentation.handlers import register_handlers
 
@@ -30,6 +31,10 @@ async def main():
     
     logger = logging.getLogger(__name__)
     logger.info("Starting Emotions Translator Bot...")
+    
+    # Connect to database for analytics
+    logger.info("Connecting to analytics database...")
+    await analytics_db.connect()
     
     # Log library versions for debugging
     import anthropic
@@ -118,3 +123,7 @@ if __name__ == "__main__":
     except Exception as e:
         logging.error(f"Critical error: {e}")
         sys.exit(1)
+    finally:
+        # Close database connection
+        loop = asyncio.new_event_loop()
+        loop.run_until_complete(analytics_db.close())

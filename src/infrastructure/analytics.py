@@ -5,6 +5,7 @@ import hashlib
 import uuid
 import json
 import logging
+import asyncio
 from datetime import datetime, timedelta
 from typing import Dict, Optional, Any
 from enum import Enum
@@ -13,6 +14,7 @@ from enum import Enum
 # Configure analytics logger
 analytics_logger = logging.getLogger('analytics')
 analytics_logger.setLevel(logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Create JSON formatter for analytics events
 class AnalyticsJSONFormatter(logging.Formatter):
@@ -421,7 +423,7 @@ class Analytics:
             return 'neutral'
     
     def _log_event(self, event_data: Dict[str, Any]):
-        """Log event to file and console"""
+        """Log event to file, console and database"""
         # Log as JSON with special attribute
         record = analytics_logger.makeRecord(
             analytics_logger.name,
@@ -439,6 +441,19 @@ class Analytics:
         event_type = event_data.get('event', 'unknown')
         user_id = event_data.get('properties', {}).get('user_id', 'unknown')
         analytics_logger.info(f"Event: {event_type} | User: {user_id}")
+        
+        # Store in database asynchronously
+        from .database import analytics_db
+        asyncio.create_task(self._store_in_db(event_data))
+    
+    async def _store_in_db(self, event_data: Dict[str, Any]):
+        """Store event in database"""
+        try:
+            from .database import analytics_db
+            if analytics_db.pool:
+                await analytics_db.store_event(event_data)
+        except Exception as e:
+            logger.error(f"Failed to store event in database: {e}")
 
 
 # Global analytics instance
