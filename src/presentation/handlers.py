@@ -39,10 +39,45 @@ class BotHandlers:
     
     async def start_command(self, message: Message, state: FSMContext):
         await state.clear()
-        # Track bot started event
+        
+        # Extract UTM parameters from start command
+        source = 'direct'
+        utm_params = {}
+        
+        if message.text and ' ' in message.text:
+            # Get parameters after /start
+            params_str = message.text.split(' ', 1)[1]
+            
+            # Parse UTM parameters (format: utm_source-google_utm_medium-cpc_utm_campaign-test)
+            if params_str:
+                # Replace hyphens with underscores for easier parsing
+                params_str = params_str.replace('-', '_')
+                
+                # Split by _utm_ to get parameters
+                parts = params_str.split('_')
+                
+                i = 0
+                while i < len(parts):
+                    if parts[i] == 'utm' and i + 2 < len(parts):
+                        # Found utm parameter
+                        key = f"utm_{parts[i+1]}"
+                        value = parts[i+2]
+                        utm_params[key] = value
+                        
+                        # Set source from utm_source
+                        if parts[i+1] == 'source':
+                            source = value
+                        i += 3
+                    else:
+                        i += 1
+                
+                logger.info(f"Extracted UTM params: {utm_params} from {params_str}")
+        
+        # Track bot started event with UTM params
         analytics.track_bot_started(
             telegram_id=message.from_user.id,
-            source='direct'
+            source=source,
+            utm_params=utm_params
         )
         await message.answer(
             self.messages.WELCOME_MESSAGE,

@@ -143,8 +143,8 @@ class Analytics:
                 }
             })
     
-    def track_bot_started(self, telegram_id: int, source: str = 'direct'):
-        """Track bot start event"""
+    def track_bot_started(self, telegram_id: int, source: str = 'direct', utm_params: Dict[str, str] = None):
+        """Track bot start event with UTM parameters"""
         user_hash = self.get_user_hash(telegram_id)
         session_id, is_new_session = self.get_or_create_session(user_hash)
         
@@ -156,16 +156,24 @@ class Analytics:
                 'total_phrases': 0
             }
         
+        # Build event properties
+        properties = {
+            'user_id': user_hash,
+            'timestamp': datetime.now().isoformat(),
+            'source': source,
+            'platform': 'telegram',
+            'language': 'ru',
+            'session_id': session_id
+        }
+        
+        # Add UTM parameters if provided
+        if utm_params:
+            properties.update(utm_params)
+            logger.info(f"Bot started with UTM params: {utm_params}")
+        
         event = {
             'event': EventType.BOT_STARTED.value,
-            'properties': {
-                'user_id': user_hash,
-                'timestamp': datetime.now().isoformat(),
-                'source': source,
-                'platform': 'telegram',
-                'language': 'ru',
-                'session_id': session_id
-            }
+            'properties': properties
         }
         
         self._log_event(event)
